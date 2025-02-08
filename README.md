@@ -1,4 +1,4 @@
-to start:
+to start (vagy ha csak a konfig frissült):
 kubectl apply -f sum_local_deployment.yaml
 
 to stop:
@@ -26,7 +26,7 @@ Importálás a containerd-be:
 
 sudo k3s ctr image import sum_local.tar
 
-Frissítsd a k3s deployment-et de előtte le kell skálázni:
+Frissítsd a k3s deployment-et de előtte le kell skálázni (ha nem recreate a stratégia akkor kell leskálázni):
 
 kubectl scale deployment sum-local --replicas=0
 kubectl set image deployment/sum-local sum-local=sum_local:latest
