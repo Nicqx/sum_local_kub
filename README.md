@@ -39,7 +39,10 @@ kubectl scale deployment sum-local --replicas=1
 
 Ez új podot indít az új képpel, majd a régi podot leállítja.
 akkor nem kell leskálázni ha ez van a deployment yamlben
+
 spec:
+
   strategy:
+
     type: Recreate
 
