@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sumplete - Generált pálya</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+    <h1>Sumplete - Generált pálya</h1>
+    <p id="timer">Idő: 00:00</p> <!-- ✅ Az idő kijelzője mindig látszik -->
+    <button onclick="generateNewSeed()">Új pálya generálása</button>
+    <button onclick="resetBoard()">Újrakezdés</button>
+    <button onclick="giveHint()">Tipp</button>
+    <button onclick="undoMove()">Visszavonás</button>
+    <button onclick="reloadPage()">Oldal frissítése</button> <!-- 🔥 Új gomb -->    
+    <select id="sizeSelector" onchange="startGame()">
+        <option value="3">3x3</option>
+        <option value="4" selected>4x4</option>
+        <option value="5">5x5</option>
+        <option value="6">6x6</option>
+        <option value="7">7x7</option>
+        <option value="8">8x8</option>
+        <option value="9">9x9</option>
+    </select>
+    <label>
+        <input type="checkbox" id="extremeMode"> Extrém mód (Negatív számok)
+    </label>
+
+    <div id="grid"></div>
+        <div id="instructions">
+        <h2>Használati útmutató</h2>
+        <p><strong>A Sumplete egy logikai játék</strong>
+	<p><strong>🎯 Cél:</strong> Kihúzni a megfelelő számokat, hogy a sorok és oszlopok végén lévő összeg megegyezzen a kívánt értékkel.</p>
+
+        <h3>🔹 Játékmenet</h3>
+        <ul>
+            <li>Minden cellában egy szám található.</li>
+            <li>A sorok és oszlopok végén látható egy szám – ez a megmaradó számok összege.</li>
+            <li>A célod, hogy kiválaszd azokat a számokat, amelyeket el kell távolítani (pirosra jelölni), hogy a maradék összegek megfelelőek legyenek.</li>
+            <li>Alternatív megoldásként kijelölheted a megtartandó számokat is (zölddel).</li>
+        </ul>
+	<h3>🔥 Extrém mód</h3>
+            <ul>
+                <li>Ha be van kapcsolva, a pályán **negatív számok is lehetnek**!</li>
+                <li>Kapcsold be, majd kattints az <strong>Új pálya generálása</strong> gombra!</li>
+                <li>Alapértelmezetten ki van kapcsolva.</li>
+           </ul>
+
+
+        <h3>🔹 Gombok és funkciók</h3>
+        <ul>
+            <li><strong>🟢 Új pálya generálása:</strong> Véletlenszerű új számokat generál.</li>
+            <li><strong>🔄 Újrakezdés:</strong> Visszaállítja az összes jelölést anélkül, hogy új pályát hozna létre.</li>
+            <li><strong>💡 Tipp:</strong> Egy véletlenszerű számot halványan megjelöl, segítve a döntést.</li>
+	    <li><strong>🔙 Visszavonás:</strong> Az utolsó lépést visszavonja, többször is használható.</li>
+	    <li><strong>🔄 Oldal frissítése</strong> Újra tölti az oldalt ha lett új pálya generálva.</li>
+	    <li><strong>📏 Pályaméret választó:</strong> A méret módosításával új táblát tölt be a jelenlegi seed alapján.</li>
+        </ul>
+
+        <h3>🎨 Speciális vizuális elemek</h3>
+	<ul>
+            <li><strong>❌ Piros</strong>: A számot el kell távolítani.</li>
+            <li><strong>✅ Zöld</strong>: A számot meg kell tartani.</li>
+            <li><strong>⚪ Fehér</strong>: Még nincs döntés a számról.</li>
+            <li><strong>💡 Halvány piros/zöld:</strong> Tippként jelölt szám.</li>
+        </ul>
+
+        <h3>🔹 Automatikus segítség</h3>
+        <ul>
+            <li>Ha egy sor vagy oszlop összege megfelelő, akkor a végén lévő szám halványzöld lesz.</li>
+            <li>Ha egy halványzöld mezőre kattintasz, akkor az összes még fehér mezőt automatikusan zöldre jelöli.</li>
+        </ul>
+
+        <h3>🔹 Győzelem</h3>
+        <ul>
+            <li>A játék akkor ér véget, ha minden felesleges szám piros, VAGY minden szükséges szám zöld.</li>
+            <li>A végén az idő megáll, és kiírja a teljesítési időt.</li>
+        </ul>
+	<h3>🏆 Tippek és stratégiák</h3>
+        <p>✔ Kezdj az egyértelmű számokkal. Ha elakadsz, használd a Tipp gombot!</p>
+        <p>✔ Ha egy sor/oszlop majdnem kész, kattints az összeg mezőre, hogy automatikusan kitöltődjön!</p>
+        <p>✔ Ha elrontottál valamit, a Visszavonás gombbal visszaléphetsz!</p>
+
+        <p><strong>🔥 Jó játékot és versenyre fel a legjobb időért! 🔥</strong></p>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
+

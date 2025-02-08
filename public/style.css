@@ -1,0 +1,86 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    flex-direction: column;
+}
+
+#controls {
+    margin-bottom: 10px;
+}
+
+button {
+    padding: 10px;
+    margin: 5px;
+    cursor: pointer;
+}
+
+#game-container {
+    display: inline-grid;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+.cell {
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid black;
+    cursor: pointer;
+}
+
+.delete {
+    background-color: red;
+    color: white;
+}
+
+.keep {
+    background-color: green;
+    color: white;
+}
+
+.hint-delete {
+    background-color: pink;
+}
+
+.hint-keep {
+    background-color: lightgreen;
+}
+
+.highlight {
+    background-color: #c8f7c5 !important; /* Halványzöld */
+    transition: background-color 0.3s ease-in-out;
+}
+
+#instructions {
+    text-align: left;
+    max-width: 600px;
+    margin-top: 20px;
+    padding: 15px;
+    background: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+#instructions h2, #instructions h3 {
+    color: #333;
+}
+
+#instructions ul {
+    padding-left: 20px;
+}
+
+#instructions li {
+    margin-bottom: 8px;
+}
+
+#extremeMode {
+    margin-left: 10px;
+}
+

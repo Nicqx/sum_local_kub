@@ -1,1 +1,40 @@
-# sum_local_kub
+to start:
+kubectl apply -f sum_local_deployment.yaml
+
+to stop:
+kubectl scale deployment sum-local --replicas=0
+
+to reach:
+localhost:8080
+
+to test:
+kubectl get pods
+
+Kódfrissítés kezelése
+
+Amikor módosítod a sum_local kódját (például egy kódfrissítést végzel):
+
+    Frissítsd a kódot és építsd újra a Docker képet:
+
+docker build -t sum_local:latest .
+
+Exportálás:
+
+docker save sum_local:latest -o sum_local.tar
+
+Importálás a containerd-be:
+
+sudo k3s ctr image import sum_local.tar
+
+Frissítsd a k3s deployment-et de előtte le kell skálázni:
+
+kubectl scale deployment sum-local --replicas=0
+kubectl set image deployment/sum-local sum-local=sum_local:latest
+kubectl scale deployment sum-local --replicas=1
+
+Ez új podot indít az új képpel, majd a régi podot leállítja.
+akkor nem kell leskálázni ha ez van a deployment yamlben
+spec:
+  strategy:
+    type: Recreate
+
