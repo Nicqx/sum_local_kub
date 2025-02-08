@@ -5,7 +5,7 @@ to stop (temporaly):
 kubectl scale deployment sum-local --replicas=0
 
 to stop (permanently):
-ubectl delete -f sum_local_deployment.yaml
+kubectl delete -f sum_local_deployment.yaml
 
 to reach:
 localhost:8080
