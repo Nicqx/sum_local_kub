@@ -21,11 +21,6 @@ spec:
         - containerPort: 8080
           hostPort: 8080
         imagePullPolicy: IfNotPresent
-        env:
-        - name: REDIS_HOST
-          value: "redis-service"    # A Redis Service neve a klaszteren belül
-        - name: REDIS_PORT
-          value: "6379"
         volumeMounts:
         - name: public-folder
           mountPath: /app/public
@@ -34,6 +29,7 @@ spec:
         hostPath:
           path: /home/user/sum_local_kub/public
           type: Directory
+
 ---
 apiVersion: v1
 kind: Service
@@ -44,6 +40,6 @@ spec:
     app: sum-local
   ports:
   - protocol: TCP
-    port: 8080
-    targetPort: 8080
+    port: 8080         # A Service által elérhető port a klaszteren belül
+    targetPort: 8080   # A konténerben futó alkalmazás portja
   type: ClusterIP
