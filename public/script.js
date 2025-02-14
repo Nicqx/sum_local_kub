@@ -278,6 +278,36 @@ function giveHint() {
   }, 3000);
 }
 
+function completeColumn(colIndex) {
+  let colSumElement = document.getElementById(`sum-col-${colIndex}`);
+  if (!colSumElement.classList.contains("highlight")) return; // Ha az oszlopösszeg nem van kiemelve, nem csinálunk semmit!
+  
+  for (let row = 0; row < gridSize; row++) {
+    let cell = document.getElementById(`cell-${row}-${colIndex}`);
+    if (!cell) continue;
+    if (!cell.classList.contains("delete") && !cell.classList.contains("keep")) {
+      cell.classList.add("keep"); // Állítsuk az oszlopban lévő nem jelölt cellákat "keep" osztályra
+    }
+  }
+  
+  updateSumHighlights(); // Frissítsük az összeg kiemeléseket
+}
+
+function completeRow(rowIndex) {
+  let rowSumElement = document.getElementById(`sum-row-${rowIndex}`);
+  if (!rowSumElement.classList.contains("highlight")) return; // Ha a sorösszeg nincs kiemelve, nem csinálunk semmit!
+  
+  for (let col = 0; col < gridSize; col++) {
+    let cell = document.getElementById(`cell-${rowIndex}-${col}`);
+    if (!cell) continue;
+    if (!cell.classList.contains("delete") && !cell.classList.contains("keep")) {
+      cell.classList.add("keep"); // Állítsuk a sorban lévő nem jelölt cellákat "keep" osztályra
+    }
+  }
+  
+  updateSumHighlights();
+}
+
 function updateSumHighlights() {
   if (!rowSums || !colSums) return;
 
