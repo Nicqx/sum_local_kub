@@ -5,81 +5,110 @@ const path = require("path");
 const app = express();
 const PORT = 8080;
 
-// Redis kapcsolat: a Kubernetes-ben a Redis Service neve pl. "redis-service"
+// Redis kapcsolat: a Kubernetes-ben a Redis Service neve (vagy helyileg "redis-service")
 const redis = new Redis({
   host: process.env.REDIS_HOST || "redis-service",
   port: process.env.REDIS_PORT || 6379,
 });
 
-app.use(express.static("public"));
 app.use(express.json());
+// Serve static files from "public" directory
+app.use(express.static("public"));
 
-// Ha még nincs tárolva session adat a Redis-ben, állítsuk be az alapértelmezett értékeket.
-// Itt az alapértelmezett seed: 123456, extrém mód ki, negatív indexek: üres.
+// Biztosítjuk, hogy a "1" session mindig létezzen (nincs TTL)
 async function ensureDefaultSession() {
-  const data = await redis.get("sessionData");
-  if (!data) {
-    await redis.set("sessionData", "123456:0:");
+  const key = "session:1";
+  const exists = await redis.exists(key);
+  if (!exists) {
+    await redis.set(key, "123456:0:", "NX");
+    console.log("Default session '1' created.");
   }
 }
 ensureDefaultSession();
 
-// GET végpont: A Redis-ben tárolt session adatokat küldi vissza, ugyanabban a formátumban, mint a korábbi fájl (pl. "123456:0:" vagy "seed:extreme:negIndices")
-app.get("/random_szam.txt", async (req, res) => {
+/* --- API végpontok (/api/session/...) --- */
+
+// GET /api/session/current – Lekéri az alapértelmezett ("1") session adatait
+app.get("/api/session/current", async (req, res) => {
+  const key = "session:1";
   try {
-    const data = await redis.get("sessionData");
+    const data = await redis.get(key);
     if (!data) {
-      return res.send("123456:0:");
+      return res.json({ seed: "123456", extremeMode: "0", negativeIndices: "" });
     }
-    res.send(data);
+    const parts = data.split(":");
+    res.json({ seed: parts[0], extremeMode: parts[1] || "0", negativeIndices: parts[2] || "" });
   } catch (err) {
-    console.error("Hiba a Redis olvasásakor:", err);
-    res.status(500).send("Hiba a Redis olvasásakor");
+    console.error("Error retrieving default session:", err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
-// PUT végpont: Új seed generálása, extrém mód érték és negatív indexek kiszámítása, majd ezek mentése a Redis-ben
-app.put("/random_szam.txt", async (req, res) => {
-  const newSeed = Math.floor(Math.random() * 1000000);
-  const extremeMode = Math.random() < 0.5 ? 1 : 0; // 50% esély extrém módra
-
-  let negativeIndices = [];
-  if (extremeMode) {
-    for (let i = 0; i < 81; i++) { // 9x9 max méret, de a játék a megfelelő méretig nézi
-      if (Math.random() < 0.5) { // 50% eséllyel negatív lesz
-        negativeIndices.push(i);
-      }
-    }
-  }
-
-  const newContent = `${newSeed}:${extremeMode}:${negativeIndices.join(",")}`;
-
+// GET /api/session/:session – Lekéri az adott session adatait
+app.get("/api/session/:session", async (req, res) => {
+  const sessionId = req.params.session;
+  const key = `session:${sessionId}`;
   try {
-    await redis.set("sessionData", newContent);
-    res.send(`Új seed generálva: ${newSeed}, Extrém mód: ${extremeMode}, Negatív számok: ${negativeIndices}`);
+    const data = await redis.get(key);
+    if (!data) {
+      return res.status(404).json({ error: "Session not found" });
+    }
+    const parts = data.split(":");
+    res.json({ seed: parts[0], extremeMode: parts[1] || "0", negativeIndices: parts[2] || "" });
   } catch (err) {
-    console.error("Hiba a Redis írásakor:", err);
-    res.status(500).send("Hiba a Redis írásakor");
+    console.error("Error retrieving session:", err);
+    res.status(500).json({ error: "Server error" });
   }
+});
+
+// POST /api/session/new – Új session létrehozása (5 számjegyű sessionId, TTL 1 óra)
+app.post("/api/session/new", async (req, res) => {
+  let sessionId;
+  do {
+    sessionId = (Math.floor(Math.random() * 90000) + 10000).toString();
+  } while (sessionId === "1"); // Ne legyen "1"
+  
+  const seed = Math.floor(Math.random() * 1000000).toString();
+  const extremeMode = "0"; // alapértelmezetten ki van kapcsolva
+  const negativeIndices = ""; // üres
+  const key = `session:${sessionId}`;
+  
+  try {
+    await redis.set(key, `${seed}:${extremeMode}:${negativeIndices}`, "EX", 3600);
+    res.json({ sessionId, seed, extremeMode, negativeIndices });
+  } catch (err) {
+    console.error("Error creating new session:", err);
+    res.status(500).send("Server error");
+  }
+});
+
+// PUT /api/session/:session – Meglévő session adatainak frissítése
+app.put("/api/session/:session", async (req, res) => {
+  const sessionId = req.params.session;
+  const key = `session:${sessionId}`;
+  const { seed, extremeMode, negativeIndices } = req.body;
+  if (!seed) {
+    return res.status(400).send("Missing seed");
+  }
+  try {
+    if (sessionId === "1") {
+      // Alap sessionnél nincs TTL
+      await redis.set(key, `${seed}:${extremeMode}:${negativeIndices}`);
+    } else {
+      await redis.set(key, `${seed}:${extremeMode}:${negativeIndices}`, "EX", 3600);
+    }
+    res.json({ sessionId, seed, extremeMode, negativeIndices });
+  } catch (err) {
+    console.error("Error updating session:", err);
+    res.status(500).send("Server error");
+  }
+});
+
+/* --- Catch-all: minden nem-API kéréshez szolgáltatjuk az index.html-t --- */
+app.get("*", (req, res) => {
+  res.sendFile(path.resolve(__dirname, "public", "index.html"));
 });
 
 app.listen(PORT, () => {
-  console.log(`Szerver fut: http://localhost:${PORT}`);
-});
-
-// Új végpont, amely JSON formátumban adja vissza a session adatokat
-app.get("/session/current", async (req, res) => {
-  try {
-    const data = await redis.get("sessionData");
-    if (!data) {
-      // Ha nincs adat, visszaküldheted az alapértelmezett értékeket
-      return res.json({ seed: "123456", extremeMode: "0", negativeIndices: "" });
-    }
-    // A korábban mentett formátum: "seed:extremeMode:negativeIndices"
-    const parts = data.split(":");
-    res.json({ seed: parts[0], extremeMode: parts[1], negativeIndices: parts[2] });
-  } catch (err) {
-    console.error("Hiba a Redis olvasásakor:", err);
-    res.status(500).json({ error: "Hiba a session adatok olvasásakor" });
-  }
+  console.log(`Server running on http://localhost:${PORT}`);
 });

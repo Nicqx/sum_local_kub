@@ -14,6 +14,7 @@
     <button onclick="giveHint()">Tipp</button>
     <button onclick="undoMove()">Visszavonás</button>
     <button onclick="reloadPage()">Oldal frissítése</button> <!-- 🔥 Új gomb -->    
+    <button id="newSessionBtn">Új session létrehozása</button>
     <select id="sizeSelector" onchange="startGame()">
         <option value="3">3x3</option>
         <option value="4" selected>4x4</option>
@@ -56,6 +57,7 @@
 	    <li><strong>🔙 Visszavonás:</strong> Az utolsó lépést visszavonja, többször is használható.</li>
 	    <li><strong>🔄 Oldal frissítése</strong> Újra tölti az oldalt ha lett új pálya generálva.</li>
 	    <li><strong>📏 Pályaméret választó:</strong> A méret módosításával új táblát tölt be a jelenlegi seed alapján.</li>
+            <li><strong>🆕 Új session létrehozása:</strong> Létrehoz egy új, egyedi sessiont, amelynek saját játékadatai lesznek, így több csapat egyidejűleg játszhat.</li>
         </ul>
 
         <h3>🎨 Speciális vizuális elemek</h3>
@@ -81,6 +83,12 @@
         <p>✔ Kezdj az egyértelmű számokkal. Ha elakadsz, használd a Tipp gombot!</p>
         <p>✔ Ha egy sor/oszlop majdnem kész, kattints az összeg mezőre, hogy automatikusan kitöltődjön!</p>
         <p>✔ Ha elrontottál valamit, a Visszavonás gombbal visszaléphetsz!</p>
+
+        <h3>Session élettartam</h3>
+        <ul>
+            <li>A "1" session örök érvényű.</li>
+            <li>A többi session 1 óra élettartamú, és ha inaktívak, automatikusan törlődnek.</li>
+        </ul>
 
         <p><strong>🔥 Jó játékot és versenyre fel a legjobb időért! 🔥</strong></p>
     </div>

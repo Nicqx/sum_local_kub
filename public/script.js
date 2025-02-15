@@ -10,32 +10,62 @@ let history = [];
 let isExtremeMode = false;
 let negativeIndices = new Set(); // Negatív számokat tároló halmaz
 
+// Globális változó a session ID tárolására
+let currentSessionId = "1";
+
 document.addEventListener("DOMContentLoaded", async () => {
   try {
-    // Most JSON formátumban várjuk a választ
-    let response = await fetch("/session/current");
-    let data = await response.json(); // A szerver JSON-t küld vissza
-    // A feltételezett formátum: { seed: "123456", extremeMode: "0", negativeIndices: "1,5,7" }
+    // Kinyerjük a session ID-t az URL-ből (pl. /85437)
+    let pathParts = window.location.pathname.split("/");
+    let sessionFromUrl = pathParts[1] || "1"; // Ha nincs, akkor alapértelmezett "1"
+    currentSessionId = sessionFromUrl; // Tároljuk a globális változóban
+
+    // Lekérjük az adott session adatait a /api/session/:session végpontról
+    let response = await fetch(`/api/session/${sessionFromUrl}`);
+    if (!response.ok) {
+      // Ha a session nem létezik, visszairányítjuk a főoldalra
+      window.location.href = "/";
+      return;
+    }
+    let data = await response.json(); // Várt formátum: { seed: "563351", extremeMode: "0", negativeIndices: "" }
     currentSeed = parseInt(data.seed);
     isExtremeMode = parseInt(data.extremeMode) === 1;
     negativeIndices = new Set(
       data.negativeIndices ? data.negativeIndices.split(",").map(Number) : []
     );
 
-    console.log("Betöltött seed:", currentSeed);
+    console.log("Betöltött session:", sessionFromUrl, "Seed:", currentSeed);
     document.getElementById("sizeSelector").value = gridSize;
     document.getElementById("extremeMode").checked = isExtremeMode;
     startGame(currentSeed);
   } catch (error) {
     console.error("Hiba a session adatok betöltésekor:", error);
   }
-  
+
   document.getElementById("sizeSelector").addEventListener("change", () => {
     changeGridSize();
   });
   document.getElementById("extremeMode").addEventListener("change", () => {
     startGame(currentSeed);
   });
+
+  // Új session létrehozása gomb eseménykezelése
+  const newSessionBtn = document.getElementById("newSessionBtn");
+  if (newSessionBtn) {
+    newSessionBtn.addEventListener("click", async () => {
+      try {
+        let response = await fetch("/api/session/new", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" }
+        });
+        let data = await response.json();
+        // Átirányítjuk a felhasználót az új session URL-re (pl. /85437)
+        window.location.href = `/${data.sessionId}`;
+      } catch (err) {
+        console.error("Hiba az új session létrehozásakor:", err);
+      }
+    });
+  }
 });
 
 function reloadPage() {
@@ -235,21 +265,33 @@ function checkWinCondition() {
   }
 }
 
+// Módosított generateNewSeed, amely a session PUT végpontot hívja
 function generateNewSeed() {
-  // Ha a backend már Redis-ben tárolja a seedet, itt érdemes egy új seed generálást backend hívással kezelni,
-  // de az itt maradó logika most változatlan.
-  fetch("/random_szam.txt", { method: "PUT" })
+  // Generáljunk új seedet (a kliens által, és küldjük a backendnek)
+  const newSeed = Math.floor(Math.random() * 1000000).toString();
+  // Itt továbbra is feltételezzük, hogy az extrém mód és negatív indexek nem változnak – vagy ezt igény szerint módosítjuk
+  fetch(`/api/session/${currentSessionId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      seed: newSeed,
+      extremeMode: isExtremeMode ? "1" : "0",
+      negativeIndices: "" // vagy generálj új negatív indexeket, ha szükséges
+    })
+  })
     .then(() => {
-      fetch("/random_szam.txt")
-        .then(response => response.text())
-        .then(data => {
-          let parsedData = data.trim().split(":");
-          currentSeed = parseInt(parsedData[0]);
-          isExtremeMode = parseInt(parsedData[1]) === 1;
-          negativeIndices = new Set(parsedData[2] ? parsedData[2].split(",").map(Number) : []);
-          document.getElementById("extremeMode").checked = isExtremeMode;
-          startGame(currentSeed);
-        });
+      // Utána lekérjük az új session adatokat
+      return fetch(`/api/session/${currentSessionId}`);
+    })
+    .then(response => response.json())
+    .then(data => {
+      currentSeed = parseInt(data.seed);
+      isExtremeMode = parseInt(data.extremeMode) === 1;
+      negativeIndices = new Set(
+        data.negativeIndices ? data.negativeIndices.split(",").map(Number) : []
+      );
+      document.getElementById("extremeMode").checked = isExtremeMode;
+      startGame(currentSeed);
     })
     .catch(error => console.error("Hiba a seed generálásakor:", error));
 }
