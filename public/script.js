@@ -9,9 +9,7 @@ let colSums = [];
 let history = [];
 let isExtremeMode = false;
 let negativeIndices = new Set(); // Negatív számokat tároló halmaz
-
-// Globális változó a session ID tárolására
-let currentSessionId = "1";
+let currentSessionId = "1"; // Globális változó a session ID tárolására
 
 document.addEventListener("DOMContentLoaded", async () => {
   try {
@@ -45,39 +43,43 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("sizeSelector").addEventListener("change", () => {
     changeGridSize();
   });
+
+  // Extrém mód checkbox eseménykezelése
   document.getElementById("extremeMode").addEventListener("change", async () => {
-  // Frissítsük a globális változót
-  isExtremeMode = document.getElementById("extremeMode").checked;
-  
-  // Generáljunk negatív indexeket, ha extrém mód be van kapcsolva
-  let newNegativeIndices = "";
-  if (isExtremeMode) {
-    let indices = [];
-    for (let i = 0; i < gridSize * gridSize; i++) {
-      if (Math.random() < 0.5) { // 50% eséllyel negatív lesz
-        indices.push(i);
+    isExtremeMode = document.getElementById("extremeMode").checked;
+    let newNegativeIndices = "";
+    if (isExtremeMode) {
+      let indices = [];
+      for (let i = 0; i < gridSize * gridSize; i++) {
+        if (Math.random() < 0.5) {
+          indices.push(i);
+        }
       }
+      newNegativeIndices = indices.join(",");
     }
-    newNegativeIndices = indices.join(",");
-  }
-  
-  // Küldjük el a PUT kérést a session frissítésére a jelenlegi session ID-vel
-  try {
-    await fetch(`/api/session/${currentSessionId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        seed: currentSeed.toString(), // jelenlegi seed megtartása
-        extremeMode: isExtremeMode ? "1" : "0",
-        negativeIndices: newNegativeIndices
-      })
-    });
-    // Frissítsük a játékot a jelenlegi seed alapján
-    startGame(currentSeed);
-  } catch (error) {
-    console.error("Hiba az extrém mód frissítésekor:", error);
-  }
-});
+    try {
+      await fetch(`/api/session/${currentSessionId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          seed: currentSeed.toString(),
+          extremeMode: isExtremeMode ? "1" : "0",
+          negativeIndices: newNegativeIndices
+        })
+      });
+      // Lekérjük a frissített session adatokat
+      let resp = await fetch(`/api/session/${currentSessionId}`);
+      let updatedData = await resp.json();
+      currentSeed = parseInt(updatedData.seed);
+      isExtremeMode = parseInt(updatedData.extremeMode) === 1;
+      negativeIndices = new Set(
+        updatedData.negativeIndices ? updatedData.negativeIndices.split(",").map(Number) : []
+      );
+      startGame(currentSeed);
+    } catch (error) {
+      console.error("Hiba az extrém mód frissítésekor:", error);
+    }
+  });
 
   // Új session létrehozása gomb eseménykezelése
   const newSessionBtn = document.getElementById("newSessionBtn");
@@ -113,67 +115,58 @@ function startGame(seed) {
   finalTime = null;
   clearInterval(timerInterval);
   document.getElementById("timer").textContent = "Idő: 00:00";
-  history = []; // Visszavonás előzmény törlése
-
+  history = [];
   if (!seed) {
     console.error("Seed nem elérhető, új generálás szükséges!");
     return;
   }
-
-  currentSeed = seed; // Seed megtartása
+  currentSeed = seed;
   generatePuzzle(currentSeed);
 }
 
 function pseudoRandom(seed) {
   seed = (seed * 1664525 + 1013904223) % 4294967296;
-  return (seed >>> 16) / 65536; // 0 és 1 közötti véletlen szám
+  return (seed >>> 16) / 65536;
 }
 
 function generatePuzzle(seed) {
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
-
   grid.style.display = "grid";
   grid.style.gridTemplateColumns = `repeat(${gridSize + 1}, 50px)`;
   grid.style.gridTemplateRows = `repeat(${gridSize + 1}, 50px)`;
   grid.style.gap = "5px";
   grid.style.margin = "20px auto";
-
+  
   puzzleData.numbers = [];
   puzzleData.solution = [];
   rowSums = Array(gridSize).fill(0);
   colSums = Array(gridSize).fill(0);
   let rng = seed;
-
+  
   for (let i = 0; i < gridSize; i++) {
     for (let j = 0; j < gridSize; j++) {
       rng = (rng * 1664525 + 1013904223) % 4294967296;
-      let value = (rng % 9) + 1; // 1-9 közötti értékek
-
-      // Extrém mód logika: ha be van kapcsolva, lehet negatív is
+      let value = (rng % 9) + 1;
       if (isExtremeMode && negativeIndices.has(i * gridSize + j)) {
         value *= -1;
       }
-
       puzzleData.numbers.push(value);
-
-      let isDeleted = pseudoRandom(rng) < 0.35; // Véletlenszerű törlés
+      let isDeleted = pseudoRandom(rng) < 0.35;
       if (isDeleted) {
         puzzleData.solution.push(i * gridSize + j);
       } else {
         rowSums[i] += value;
         colSums[j] += value;
       }
-
       const cell = document.createElement("div");
       cell.classList.add("cell");
       cell.textContent = value;
       cell.dataset.index = i * gridSize + j;
-      cell.id = `cell-${i}-${j}`; // Egyedi azonosító minden cellának
+      cell.id = `cell-${i}-${j}`;
       cell.addEventListener("click", () => toggleCellState(cell));
       grid.appendChild(cell);
     }
-
     const rowSumCell = document.createElement("div");
     rowSumCell.classList.add("cell", "sum-cell");
     rowSumCell.style.background = "#ddd";
@@ -183,7 +176,6 @@ function generatePuzzle(seed) {
     grid.appendChild(rowSumCell);
     rowSumCell.addEventListener("click", () => completeRow(i));
   }
-
   for (let j = 0; j < gridSize; j++) {
     const colSumCell = document.createElement("div");
     colSumCell.classList.add("cell", "sum-cell");
@@ -194,7 +186,6 @@ function generatePuzzle(seed) {
     grid.appendChild(colSumCell);
     colSumCell.addEventListener("click", () => completeColumn(j));
   }
-
   const emptyCorner = document.createElement("div");
   emptyCorner.classList.add("cell", "sum-cell");
   emptyCorner.style.background = "#ddd";
@@ -214,7 +205,6 @@ function saveHistory() {
 function undoMove() {
   if (history.length === 0) return;
   let lastState = history.pop();
-
   lastState.forEach(state => {
     let cell = document.querySelector(`[data-index='${state.index}']`);
     if (cell) {
@@ -222,7 +212,6 @@ function undoMove() {
       state.classList.forEach(cls => cell.classList.add(cls));
     }
   });
-
   updateSumHighlights();
 }
 
@@ -231,10 +220,7 @@ function toggleCellState(cell) {
     startTime = Date.now();
     startTimer();
   }
-  
-  // MENTÉS: Lépés előtt tároljuk az állapotot
   saveHistory();
-
   if (cell.classList.contains("delete")) {
     cell.classList.remove("delete");
     cell.classList.add("keep");
@@ -259,11 +245,9 @@ function startTimer() {
 function checkWinCondition() {
   let allCorrectDelete = true;
   let allCorrectKeep = true;
-
   document.querySelectorAll(".cell").forEach(cell => {
     let index = parseInt(cell.dataset.index);
     let isSolution = puzzleData.solution.includes(index);
-    
     if (isSolution) {
       if (!cell.classList.contains("delete")) {
         allCorrectDelete = false;
@@ -280,7 +264,6 @@ function checkWinCondition() {
       }
     }
   });
-
   if (allCorrectDelete || allCorrectKeep) {
     clearInterval(timerInterval);
     alert(`Gratulálok! Az időd: ${document.getElementById("timer").textContent}`);
@@ -295,22 +278,26 @@ function checkWinCondition() {
   }
 }
 
-// Módosított generateNewSeed, amely a session PUT végpontot hívja
 function generateNewSeed() {
-  // Generáljunk új seedet (a kliens által, és küldjük a backendnek)
   const newSeed = Math.floor(Math.random() * 1000000).toString();
-  // Itt továbbra is feltételezzük, hogy az extrém mód és negatív indexek nem változnak – vagy ezt igény szerint módosítjuk
   fetch(`/api/session/${currentSessionId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       seed: newSeed,
       extremeMode: isExtremeMode ? "1" : "0",
-      negativeIndices: "" // vagy generálj új negatív indexeket, ha szükséges
+      negativeIndices: isExtremeMode ? (() => {
+        let indices = [];
+        for (let i = 0; i < gridSize * gridSize; i++) {
+          if (Math.random() < 0.5) {
+            indices.push(i);
+          }
+        }
+        return indices.join(",");
+      })() : ""
     })
   })
     .then(() => {
-      // Utána lekérjük az új session adatokat
       return fetch(`/api/session/${currentSessionId}`);
     })
     .then(response => response.json())
@@ -352,38 +339,32 @@ function giveHint() {
 
 function completeColumn(colIndex) {
   let colSumElement = document.getElementById(`sum-col-${colIndex}`);
-  if (!colSumElement.classList.contains("highlight")) return; // Ha az oszlopösszeg nem van kiemelve, nem csinálunk semmit!
-  
+  if (!colSumElement.classList.contains("highlight")) return;
   for (let row = 0; row < gridSize; row++) {
     let cell = document.getElementById(`cell-${row}-${colIndex}`);
     if (!cell) continue;
     if (!cell.classList.contains("delete") && !cell.classList.contains("keep")) {
-      cell.classList.add("keep"); // Állítsuk az oszlopban lévő nem jelölt cellákat "keep" osztályra
+      cell.classList.add("keep");
     }
   }
-  
-  updateSumHighlights(); // Frissítsük az összeg kiemeléseket
+  updateSumHighlights();
 }
 
 function completeRow(rowIndex) {
   let rowSumElement = document.getElementById(`sum-row-${rowIndex}`);
-  if (!rowSumElement.classList.contains("highlight")) return; // Ha a sorösszeg nincs kiemelve, nem csinálunk semmit!
-  
+  if (!rowSumElement.classList.contains("highlight")) return;
   for (let col = 0; col < gridSize; col++) {
     let cell = document.getElementById(`cell-${rowIndex}-${col}`);
     if (!cell) continue;
     if (!cell.classList.contains("delete") && !cell.classList.contains("keep")) {
-      cell.classList.add("keep"); // Állítsuk a sorban lévő nem jelölt cellákat "keep" osztályra
+      cell.classList.add("keep");
     }
   }
-  
   updateSumHighlights();
 }
 
 function updateSumHighlights() {
   if (!rowSums || !colSums) return;
-
-  // Sorösszegek frissítése és kiemelése
   for (let row = 0; row < gridSize; row++) {
     let currentRowSum = 0;
     for (let col = 0; col < gridSize; col++) {
@@ -403,8 +384,6 @@ function updateSumHighlights() {
       }
     }
   }
-
-  // Oszlopösszegek frissítése és kiemelése
   for (let col = 0; col < gridSize; col++) {
     let currentColSum = 0;
     for (let row = 0; row < gridSize; row++) {

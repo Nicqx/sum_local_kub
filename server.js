@@ -12,8 +12,10 @@ const redis = new Redis({
 });
 
 app.use(express.json());
-// Serve static files from "public" directory
+// Statikus fájlok kiszolgálása a "public" mappából
 app.use(express.static("public"));
+
+/* --- Session API végpontok (/api/session/...) --- */
 
 // Biztosítjuk, hogy a "1" session mindig létezzen (nincs TTL)
 async function ensureDefaultSession() {
@@ -26,9 +28,7 @@ async function ensureDefaultSession() {
 }
 ensureDefaultSession();
 
-/* --- API végpontok (/api/session/...) --- */
-
-// GET /api/session/current – Lekéri az alapértelmezett ("1") session adatait
+// GET /api/session/current – lekéri az alapértelmezett ("1") session adatait
 app.get("/api/session/current", async (req, res) => {
   const key = "session:1";
   try {
@@ -44,7 +44,7 @@ app.get("/api/session/current", async (req, res) => {
   }
 });
 
-// GET /api/session/:session – Lekéri az adott session adatait
+// GET /api/session/:session – lekéri az adott session adatait
 app.get("/api/session/:session", async (req, res) => {
   const sessionId = req.params.session;
   const key = `session:${sessionId}`;
@@ -92,7 +92,7 @@ app.put("/api/session/:session", async (req, res) => {
   }
   try {
     if (sessionId === "1") {
-      // Alap sessionnél nincs TTL
+      // Az alap sessionnél nincs TTL
       await redis.set(key, `${seed}:${extremeMode}:${negativeIndices}`);
     } else {
       await redis.set(key, `${seed}:${extremeMode}:${negativeIndices}`, "EX", 3600);
@@ -104,7 +104,7 @@ app.put("/api/session/:session", async (req, res) => {
   }
 });
 
-/* --- Catch-all: minden nem-API kéréshez szolgáltatjuk az index.html-t --- */
+/* --- Catch-all: minden nem API kéréshez szolgáltatjuk az index.html-t --- */
 app.get("*", (req, res) => {
   res.sendFile(path.resolve(__dirname, "public", "index.html"));
 });
