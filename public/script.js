@@ -45,9 +45,39 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("sizeSelector").addEventListener("change", () => {
     changeGridSize();
   });
-  document.getElementById("extremeMode").addEventListener("change", () => {
+  document.getElementById("extremeMode").addEventListener("change", async () => {
+  // Frissítsük a globális változót
+  isExtremeMode = document.getElementById("extremeMode").checked;
+  
+  // Generáljunk negatív indexeket, ha extrém mód be van kapcsolva
+  let newNegativeIndices = "";
+  if (isExtremeMode) {
+    let indices = [];
+    for (let i = 0; i < gridSize * gridSize; i++) {
+      if (Math.random() < 0.5) { // 50% eséllyel negatív lesz
+        indices.push(i);
+      }
+    }
+    newNegativeIndices = indices.join(",");
+  }
+  
+  // Küldjük el a PUT kérést a session frissítésére a jelenlegi session ID-vel
+  try {
+    await fetch(`/api/session/${currentSessionId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        seed: currentSeed.toString(), // jelenlegi seed megtartása
+        extremeMode: isExtremeMode ? "1" : "0",
+        negativeIndices: newNegativeIndices
+      })
+    });
+    // Frissítsük a játékot a jelenlegi seed alapján
     startGame(currentSeed);
-  });
+  } catch (error) {
+    console.error("Hiba az extrém mód frissítésekor:", error);
+  }
+});
 
   // Új session létrehozása gomb eseménykezelése
   const newSessionBtn = document.getElementById("newSessionBtn");
