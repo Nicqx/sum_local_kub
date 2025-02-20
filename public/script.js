@@ -17,6 +17,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     let pathParts = window.location.pathname.split("/");
     let sessionFromUrl = pathParts[1] || "1"; // Ha nincs, akkor alapértelmezett "1"
     currentSessionId = sessionFromUrl; // Tároljuk a globális változóban
+    document.getElementById("pageTitle").innerText = "Sumplete - Generált pálya - session: " + currentSessionId;
 
     // Lekérjük az adott session adatait a /api/session/:session végpontról
     let response = await fetch(`/api/session/${sessionFromUrl}`);
