@@ -1,0 +1,13 @@
+{
+  "name": "sumplete-local",
+  "version": "1.1.0",
+  "description": "Sumplete web app with Redis-backed session storage",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ioredis": "^5.4.1"
+  }
+}

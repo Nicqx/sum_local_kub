@@ -1,12 +1,13 @@
-FROM node:14-alpine
+FROM node:20-alpine
 
 WORKDIR /app
+
+COPY package.json ./
+RUN npm install --omit=dev
 
 COPY public /app/public
 COPY server.js /app/
 
-RUN npm install express ioredis
-
 EXPOSE 8080
 
-CMD ["node", "server.js"]
+CMD ["npm", "start"]

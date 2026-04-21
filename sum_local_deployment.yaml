@@ -5,7 +5,10 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app: sum-local
@@ -16,34 +19,56 @@ spec:
     spec:
       containers:
       - name: sum-local
-        image: sum_local:latest
-        ports:
-        - containerPort: 8080
-          hostPort: 8080
+        image: sum_local:1.1.0
         imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
         env:
+        - name: PORT
+          value: "8080"
         - name: REDIS_HOST
-          value: "redis-service"    # A Redis Service neve a klaszteren belül
+          value: "redis-service"
         - name: REDIS_PORT
           value: "6379"
-        volumeMounts:
-        - name: public-folder
-          mountPath: /app/public
-      volumes:
-      - name: public-folder
-        hostPath:
-          path: /home/user/sum_local_kub/public
-          type: Directory
+        - name: REDIS_KEY_PREFIX
+          value: "sumplete:session"
+        - name: SESSION_TTL_SECONDS
+          value: "3600"
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 50m
+            memory: 96Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: sum-local-service
 spec:
+  type: ClusterIP
   selector:
     app: sum-local
   ports:
-  - protocol: TCP
+  - name: http
+    protocol: TCP
     port: 8080
-    targetPort: 8080
-  type: ClusterIP
+    targetPort: http
