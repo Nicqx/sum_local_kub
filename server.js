@@ -21,6 +21,10 @@ const redis = new Redis({
 app.use(express.json());
 app.use("/sumplete", express.static(path.join(__dirname, "public")));
 
+app.get("/livez", (req, res) => {
+  res.json({ ok: true });
+});
+
 function sessionKey(sessionId) {
   return `${REDIS_KEY_PREFIX}:${sessionId}`;
 }

@@ -5,6 +5,7 @@ yarn-error.log*
 
 *.tar
 *.tar.gz
+*.rdb
 
 .env
 .DS_Store

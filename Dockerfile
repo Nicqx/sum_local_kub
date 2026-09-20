@@ -8,6 +8,9 @@ RUN npm install --omit=dev
 COPY public /app/public
 COPY server.js /app/
 
+RUN chown -R node:node /app
+USER node
+
 EXPOSE 8080
 
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
