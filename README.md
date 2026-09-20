@@ -1,64 +1,38 @@
-# Sumplete
+# Sumplete – Kubernetes deployment
 
-Teljes frissítés NUC-on:
+Ez a `sum_local` alkalmazás kanonikus Kubernetes-repója. Erőforrások: `sum-local`, `sum-local-service:8080`; publikus útvonal: `/sumplete/`; Redis-prefix: `sumplete:session`.
+
+## Telepítés és frissítés
 
 ```bash
+cd ~/codes/sum_local_kub
+git pull --ff-only
 KUBECTL='sudo k3s kubectl' ./update.sh --target nuc --dry-run
 KUBECTL='sudo k3s kubectl' ./update.sh --target nuc
 ```
 
-Pi5 esetén a cél `--target pi5`. A script ellenőrzi a célclustert, menti az
-előző manifesteket, natív image-et épít és importál a k3s containerd-be, majd
-megvárja a rolloutot. A mentések helye:
-`~/.local/state/nicqx-apps/<target>/sum-local/`.
+Előfeltétel: Docker, Git, Bash, működő k3s, Redis és ingress. A korábbi manifestek helye: `~/.local/state/nicqx-apps/nuc/sum-local/`.
 
-## Régi kézi parancsok
+## Ellenőrzés
 
-to start (vagy ha csak a konfig frissült):
-kubectl apply -f sum_local_deployment.yaml
+```bash
+sudo k3s kubectl get pod,service -n default -l app=sum-local -o wide
+sudo k3s kubectl logs deployment/sum-local -n default --tail=50
+curl -fsSI https://pmqxyz.hopto.org/sumplete/ | head -n 1
+```
 
-to stop (temporaly):
-kubectl scale deployment sum-local --replicas=0
+## Migráció
 
-to stop (permanently):
-kubectl delete -f sum_local_deployment.yaml
+A konténer állapotmentes. Előbb a `redis` repo eljárásával migráld a `sumplete:session*` kulcsokat, utána klónozd ezt a repót és futtasd az update-et. Külön PVC nincs.
 
-to reach:
-localhost:8080
+## Leállítás, rollback és eltávolítás
 
-to test:
-kubectl get pods
+```bash
+sudo k3s kubectl scale deployment/sum-local -n default --replicas=0
+sudo k3s kubectl scale deployment/sum-local -n default --replicas=1
+sudo k3s kubectl apply -f /teljes/ut/korabbi-manifest.yaml
+sudo k3s kubectl rollout status deployment/sum-local -n default --timeout=180s
+sudo k3s kubectl delete deployment/sum-local service/sum-local-service -n default
+```
 
-Kódfrissítés kezelése
-
-Amikor módosítod a sum_local kódját (például egy kódfrissítést végzel):
-
-    Frissítsd a kódot és építsd újra a Docker képet:
-
-docker build -t sum_local:latest .
-
-Exportálás:
-
-docker save sum_local:latest -o sum_local.tar
-
-Importálás a containerd-be:
-
-sudo k3s ctr image import sum_local.tar
-
-Frissítsd a k3s deployment-et de előtte le kell skálázni (ha nem recreate a stratégia akkor kell leskálázni):
-
-kubectl scale deployment sum-local --replicas=0
-
-kubectl set image deployment/sum-local sum-local=sum_local:latest
-
-kubectl scale deployment sum-local --replicas=1
-
-Ez új podot indít az új képpel, majd a régi podot leállítja.
-akkor nem kell leskálázni ha ez van a deployment yamlben
-
-spec:
-
-  strategy:
-
-    type: Recreate
-
+Az eltávolítás nem töröl Redis-adatot vagy ingress-szabályt.
