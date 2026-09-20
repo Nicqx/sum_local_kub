@@ -9,7 +9,7 @@ COPY public /app/public
 COPY server.js /app/
 
 RUN chown -R node:node /app
-USER node
+USER 1000:1000
 
 EXPOSE 8080
 
