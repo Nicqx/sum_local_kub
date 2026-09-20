@@ -75,7 +75,8 @@ chmod 600 "$STATE_DIR/${STAMP}-${REV}.yaml"
 echo "Korabbi manifestek mentese: $STATE_DIR/${STAMP}-${REV}.yaml"
 
 docker build --pull -t "$IMAGE" .
-docker save "$IMAGE" | $K3S_CTR images import -
+docker save -o "$TMP/image.tar" "$IMAGE"
+$K3S_CTR images import "$TMP/image.tar"
 $KUBECTL apply -n "$NAMESPACE" -f "$TMP/resources.yaml"
 $KUBECTL rollout status deployment/sum-local -n "$NAMESPACE" --timeout=180s
 echo "Ready: Deployment/sum-local ($IMAGE)"
