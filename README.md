@@ -1,3 +1,19 @@
+# Sumplete
+
+Teljes frissítés NUC-on:
+
+```bash
+KUBECTL='sudo k3s kubectl' ./update.sh --target nuc --dry-run
+KUBECTL='sudo k3s kubectl' ./update.sh --target nuc
+```
+
+Pi5 esetén a cél `--target pi5`. A script ellenőrzi a célclustert, menti az
+előző manifesteket, natív image-et épít és importál a k3s containerd-be, majd
+megvárja a rolloutot. A mentések helye:
+`~/.local/state/nicqx-apps/<target>/sum-local/`.
+
+## Régi kézi parancsok
+
 to start (vagy ha csak a konfig frissült):
 kubectl apply -f sum_local_deployment.yaml
 
